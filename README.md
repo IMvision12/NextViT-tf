@@ -12,5 +12,5 @@ In this paper authors propose a next generation vision Transformer for efficient
 # Model Architecture
 
 <p align="center">
-  <img src="https://github.com/IMvision12/NextViT-tf/blob/main/img/img1.png" title="arch">
+  <img src="https://github.com/IMvision12/NextViT-tf/blob/main/img/img2.png" title="arch">
 </p>
