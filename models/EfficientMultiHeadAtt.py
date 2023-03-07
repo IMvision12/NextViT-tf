@@ -1,15 +1,25 @@
 import tensorflow as tf
 
+
 class E_MHSA(tf.keras.layers.Layer):
     """
     Efficient Multi-Head Self Attention
     """
-    def __init__(self, dim, head_dim=32, qkv_bias=True, qk_scale=None,
-                 attn_drop=0, proj_drop=0., sr_ratio=1):
+
+    def __init__(
+        self,
+        dim,
+        head_dim=32,
+        qkv_bias=True,
+        qk_scale=None,
+        attn_drop=0,
+        proj_drop=0.0,
+        sr_ratio=1,
+    ):
         super(E_MHSA, self).__init__()
         self.dim = dim
         self.num_heads = self.dim // head_dim
-        self.scale = qk_scale or head_dim ** -0.5
+        self.scale = qk_scale or head_dim**-0.5
         self.q = tf.keras.layers.Dense(self.dim, use_bias=qkv_bias)
         self.k = tf.keras.layers.Dense(self.dim, use_bias=qkv_bias)
         self.v = tf.keras.layers.Dense(self.dim, use_bias=qkv_bias)
@@ -18,9 +28,11 @@ class E_MHSA(tf.keras.layers.Layer):
         self.proj_drop = tf.keras.layers.Dropout(proj_drop)
 
         self.sr_ratio = sr_ratio
-        self.N_ratio = sr_ratio ** 2
+        self.N_ratio = sr_ratio**2
         if sr_ratio > 1:
-            self.sr = tf.keras.layers.AveragePooling1D(pool_size=self.N_ratio, strides=self.N_ratio)
+            self.sr = tf.keras.layers.AveragePooling1D(
+                pool_size=self.N_ratio, strides=self.N_ratio
+            )
             self.norm = tf.keras.layers.BatchNormalization(axis=-1)
 
     def call(self, x):
