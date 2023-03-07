@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 
-class E_MHSA_tf(tf.keras.layers.Layer):
+class E_MHSA(tf.keras.layers.Layer):
     """
     Efficient Multi-Head Self Attention
     """
@@ -16,7 +16,7 @@ class E_MHSA_tf(tf.keras.layers.Layer):
         proj_drop=0.0,
         sr_ratio=1,
     ):
-        super(E_MHSA_tf, self).__init__()
+        super(E_MHSA, self).__init__()
         self.dim = dim
         self.num_heads = self.dim // head_dim
         self.scale = qk_scale or head_dim**-0.5
@@ -74,7 +74,7 @@ class E_MHSA_tf(tf.keras.layers.Layer):
 
 
 # Testing
-new_multi = E_MHSA_tf(dim=32)
+new_multi = E_MHSA(dim=32)
 sample_ip_tf = tf.random.normal(shape=(2, 2, 32))
 print(sample_ip_tf.shape)
 new_multi(sample_ip_tf).shape
