@@ -77,4 +77,4 @@ class E_MHSA(tf.keras.layers.Layer):
 new_multi = E_MHSA(dim=32)
 sample_ip_tf = tf.random.normal(shape=(2, 2, 32))
 print(sample_ip_tf.shape)
-new_multi(sample_ip_tf).shape
+print(new_multi(sample_ip_tf).shape)
