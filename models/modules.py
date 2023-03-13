@@ -1,7 +1,7 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
-from EfficientMultiHeadAtt import E_MHSA
+from Attention import E_MHSA
 
 EPSILON = 1e-5
 
