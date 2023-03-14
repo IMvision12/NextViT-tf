@@ -139,7 +139,7 @@ class NTB(layers.Layer):
         self,
         filters,
         path_dropout,
-        stride=1,
+        strides=1,
         sr_ratio=1,
         mlp_ratio=2,
         head_dim=32,
@@ -156,7 +156,7 @@ class NTB(layers.Layer):
         )
         self.mhca_out_channels = filters - self.mhsa_out_channels
 
-        self.patch_embed = PatchEmbed(self.mhsa_out_channels, stride)
+        self.patch_embed = PatchEmbed(self.mhsa_out_channels, strides)
         self.e_mhsa = E_MHSA(
             self.mhsa_out_channels,
             head_dim=head_dim,
