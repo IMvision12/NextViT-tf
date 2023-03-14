@@ -64,11 +64,11 @@ class NextViT(layers.Layer):
                 output_channel = output_channels[block_id]
                 block_type = block_types[block_id]
                 if block_type is NCB:
-                    layer = NCB(output_channel, strides=strides, path_dropout=dpr[idx + block_id],
+                    layer = NCB(output_channel, strides=stride, path_dropout=dpr[idx + block_id],
                                 drop=0, head_dim=32)
                     features.append(layer)
                 elif block_type is NTB:
-                    layer = NTB(output_channel, path_dropout=dpr[idx + block_id], strides=strides,
+                    layer = NTB(output_channel, path_dropout=dpr[idx + block_id], strides=stride,
                                 sr_ratio=sr_ratios[stage_id], head_dim=32, mix_block_ratio=0.75,
                                 attn_drop=0, drop=0)
                     features.append(layer)
@@ -95,7 +95,7 @@ def nextvit_small(input_shape=(None, None, 3), num_classes=1000):
     output_layer = NextViT(stem_chs=CONFIG['SMALL']['stem_chs'], 
                            depths=CONFIG['SMALL']['depths'], 
                            path_dropout=CONFIG['SMALL']['drop_path'], 
-                           num_classes=1000)(input_layer)
+                           num_classes=num_classes)(input_layer)
     model = keras.Model(input_layer, output_layer)
     return model
 
