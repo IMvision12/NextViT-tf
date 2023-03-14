@@ -99,4 +99,4 @@ def nextvit_small(input_shape=(None, None, 3), num_classes=1000):
     model = keras.Model(input_layer, output_layer)
     return model
 
-model = nextvit_small((224,224,3))
+model = nextvit_small(input_shape=(224,224,3))
