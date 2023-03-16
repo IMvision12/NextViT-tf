@@ -9,6 +9,7 @@ import math
 
 EPSILON = 1e-5
 
+
 def shape_list(tensor: Union[tf.Tensor, np.ndarray]) -> List[int]:
     if isinstance(tensor, np.ndarray):
         return list(tensor.shape)
@@ -99,12 +100,13 @@ class PatchEmbed(tf.keras.layers.Layer):
         norm_layer = tf.keras.layers.BatchNormalization(epsilon=EPSILON)
         self.filters = filters
         self.avgpool = lambda x: x
-        self.conv = tf.keras.layers.Conv2D(filters, kernel_size=1, strides=strides, use_bias=False)
+        self.conv = tf.keras.layers.Conv2D(
+            filters, kernel_size=1, strides=strides, use_bias=False
+        )
         self.norm = norm_layer
 
     def call(self, x):
         return self.norm(self.conv(self.avgpool(x)))
-
 
 
 class mlp(layers.Layer):
@@ -143,7 +145,7 @@ class NCB(layers.Layer):
         self.attention_path_dropout = StochasticDepth(path_dropout)
         self.mlp = mlp(filters, mlp_ratio=mlp_ratio, drop=drop)
         self.mlp_path_dropout = StochasticDepth(path_dropout)
-        
+
     def call(self, x):
         x = self.patch_embed(x)
         x = x + self.attention_path_dropout(self.mhca(x))

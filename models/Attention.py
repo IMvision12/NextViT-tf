@@ -5,6 +5,7 @@ import math
 
 EPSILON = 1e-5
 
+
 def shape_list(tensor: Union[tf.Tensor, np.ndarray]) -> List[int]:
     if isinstance(tensor, np.ndarray):
         return list(tensor.shape)
@@ -19,13 +20,23 @@ class E_MHSA(tf.keras.layers.Layer):
     """
     Efficient Multi-Head Self Attention
     """
-    def __init__(self, dim, out_dim=None, head_dim=32, qkv_bias=True, qk_scale=None,
-                 attn_drop=0, proj_drop=0., sr_ratio=1):
+
+    def __init__(
+        self,
+        dim,
+        out_dim=None,
+        head_dim=32,
+        qkv_bias=True,
+        qk_scale=None,
+        attn_drop=0,
+        proj_drop=0.0,
+        sr_ratio=1,
+    ):
         super().__init__()
         self.dim = dim
         self.out_dim = out_dim if out_dim is not None else dim
         self.num_heads = self.dim // head_dim
-        self.scale = qk_scale or head_dim ** -0.5
+        self.scale = qk_scale or head_dim**-0.5
         self.q = tf.keras.layers.Dense(dim, use_bias=qkv_bias)
         self.k = tf.keras.layers.Dense(dim, use_bias=qkv_bias)
         self.v = tf.keras.layers.Dense(dim, use_bias=qkv_bias)
@@ -34,9 +45,11 @@ class E_MHSA(tf.keras.layers.Layer):
         self.proj_drop = tf.keras.layers.Dropout(proj_drop)
 
         self.sr_ratio = sr_ratio
-        self.N_ratio = sr_ratio ** 2
+        self.N_ratio = sr_ratio**2
         if sr_ratio > 1:
-            self.sr = tf.keras.layers.AveragePooling1D(pool_size=self.N_ratio, strides=self.N_ratio)
+            self.sr = tf.keras.layers.AveragePooling1D(
+                pool_size=self.N_ratio, strides=self.N_ratio
+            )
             self.norm = tf.keras.layers.BatchNormalization(epsilon=1e-5)
         self.is_bn_merged = False
 
@@ -80,9 +93,16 @@ class E_MHSA(tf.keras.layers.Layer):
         return x
 
 
-
 # Testing
-e_mhsa = E_MHSA(dim=64, out_dim=128, head_dim=32, qkv_bias=True, qk_scale=None, attn_drop=0.1, proj_drop=0.1, sr_ratio=1)
+e_mhsa = E_MHSA(
+    dim=64,
+    out_dim=128,
+    head_dim=32,
+    qkv_bias=True,
+    qk_scale=None,
+    attn_drop=0.1,
+    proj_drop=0.1,
+    sr_ratio=1,
+)
 sample_ip_tf = tf.random.normal(shape=(4, 16, 64))
 print(e_mhsa(sample_ip_tf).shape)
-

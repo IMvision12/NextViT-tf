@@ -26,36 +26,42 @@ CONFIG = {
 class Stem(layers.Layer):
     def __init__(self, stem_chs):
         super().__init__()
-        self.stem = tf.keras.Sequential([
-            ConvBNReLU(stem_chs[0], kernel_size=3, strides=2),
-            ConvBNReLU(stem_chs[1], kernel_size=3, strides=1),
-            ConvBNReLU(stem_chs[2], kernel_size=3, strides=1),
-            ConvBNReLU(stem_chs[2], kernel_size=3, strides=2),
-        ])
-    
+        self.stem = tf.keras.Sequential(
+            [
+                ConvBNReLU(stem_chs[0], kernel_size=3, strides=2),
+                ConvBNReLU(stem_chs[1], kernel_size=3, strides=1),
+                ConvBNReLU(stem_chs[2], kernel_size=3, strides=1),
+                ConvBNReLU(stem_chs[2], kernel_size=3, strides=2),
+            ]
+        )
+
     def call(self, x):
         return self.stem(x)
-    
+
 
 class NextViT(layers.Layer):
     def __init__(self, stem_chs, depths, path_dropout, num_classes):
         super().__init__()
-        
-        strides=[1, 2, 2, 2]
-        sr_ratios=[8, 4, 2, 1]
+
+        strides = [1, 2, 2, 2]
+        sr_ratios = [8, 4, 2, 1]
 
         self.stem = Stem(stem_chs)
 
-        self.stage_out_channels = [[96] * (depths[0]),
-                                   [192] * (depths[1] - 1) + [256],
-                                   [384, 384, 384, 384, 512] * (depths[2] // 5),
-                                   [768] * (depths[3] - 1) + [1024]]
-        
-        self.stage_block_types = [[NCB] * depths[0],
-                                  [NCB] * (depths[1] - 1) + [NTB],
-                                  [NCB, NCB, NCB, NCB, NTB] * (depths[2] // 5),
-                                  [NCB] * (depths[3] - 1) + [NTB]]
-        
+        self.stage_out_channels = [
+            [96] * (depths[0]),
+            [192] * (depths[1] - 1) + [256],
+            [384, 384, 384, 384, 512] * (depths[2] // 5),
+            [768] * (depths[3] - 1) + [1024],
+        ]
+
+        self.stage_block_types = [
+            [NCB] * depths[0],
+            [NCB] * (depths[1] - 1) + [NTB],
+            [NCB, NCB, NCB, NCB, NTB] * (depths[2] // 5),
+            [NCB] * (depths[3] - 1) + [NTB],
+        ]
+
         input_channel = stem_chs[-1]
         features = []
         idx = 0
@@ -72,21 +78,35 @@ class NextViT(layers.Layer):
                 output_channel = output_channels[block_id]
                 block_type = block_types[block_id]
                 if block_type is NCB:
-                    layer = NCB(output_channel, strides=stride, path_dropout=dpr[idx + block_id],
-                                drop=0, head_dim=32)
+                    layer = NCB(
+                        output_channel,
+                        strides=stride,
+                        path_dropout=dpr[idx + block_id],
+                        drop=0,
+                        head_dim=32,
+                    )
                     features.append(layer)
                 elif block_type is NTB:
-                    layer = NTB(output_channel, path_dropout=dpr[idx + block_id], strides=stride,
-                                sr_ratio=sr_ratios[stage_id], head_dim=32, mix_block_ratio=0.75,
-                                attn_drop=0, drop=0)
+                    layer = NTB(
+                        output_channel,
+                        path_dropout=dpr[idx + block_id],
+                        strides=stride,
+                        sr_ratio=sr_ratios[stage_id],
+                        head_dim=32,
+                        mix_block_ratio=0.75,
+                        attn_drop=0,
+                        drop=0,
+                    )
                     features.append(layer)
             idx += numrepeat
 
         self.features = features
         self.norm = layers.BatchNormalization(epsilon=1e-5)
         self.avgpool = layers.GlobalAveragePooling2D()
-        self.proj_head = layers.Dense(num_classes, activation='softmax')
-        self.stage_out_idx = [sum(depths[:idx + 1]) - 1 for idx in range(len(depths))]
+        self.proj_head = layers.Dense(num_classes, activation="softmax")
+        self.stage_out_idx = [
+            sum(depths[: idx + 1]) - 1 for idx in range(len(depths))
+        ]
 
     def call(self, x):
         x = self.stem(x)
@@ -96,16 +116,43 @@ class NextViT(layers.Layer):
         x = self.avgpool(x)
         x = self.proj_head(x)
         return x
-    
+
 
 def nextvit_small(input_shape=(None, None, 3), num_classes=1000):
     input_layer = layers.Input(input_shape)
-    output_layer = NextViT(stem_chs=CONFIG['BASE']['stem_chs'], 
-                           depths=CONFIG['BASE']['depths'], 
-                           path_dropout=CONFIG['BASE']['drop_path'], 
-                           num_classes=num_classes)(input_layer)
+    output_layer = NextViT(
+        stem_chs=CONFIG["SMALL"]["stem_chs"],
+        depths=CONFIG["SMALL"]["depths"],
+        path_dropout=CONFIG["SMALL"]["drop_path"],
+        num_classes=num_classes,
+    )(input_layer)
     model = keras.Model(input_layer, output_layer)
     return model
 
-model = nextvit_small(input_shape=(224,224,3))
-print(model.summary())
+
+def nextvit_base(input_shape=(None, None, 3), num_classes=1000):
+    input_layer = layers.Input(input_shape)
+    output_layer = NextViT(
+        stem_chs=CONFIG["BASE"]["stem_chs"],
+        depths=CONFIG["BASE"]["depths"],
+        path_dropout=CONFIG["BASE"]["drop_path"],
+        num_classes=num_classes,
+    )(input_layer)
+    model = keras.Model(input_layer, output_layer)
+    return model
+
+
+def nextvit_large(input_shape=(None, None, 3), num_classes=1000):
+    input_layer = layers.Input(input_shape)
+    output_layer = NextViT(
+        stem_chs=CONFIG["LARGE"]["stem_chs"],
+        depths=CONFIG["LARGE"]["depths"],
+        path_dropout=CONFIG["LARGE"]["drop_path"],
+        num_classes=num_classes,
+    )(input_layer)
+    model = keras.Model(input_layer, output_layer)
+    return model
+
+
+model = nextvit_small(input_shape=(224, 224, 3))
+# print(model.summary())
