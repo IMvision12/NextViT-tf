@@ -22,21 +22,29 @@ CONFIG = {
     },
 }
 
-    
-class NextViT(layers.Layer):
-    #stem_chs, depths, path_dropout
-    def __init__(self, stem_chs, depths, path_dropout, num_classes):
-        super().__init__()
-        
-        strides=[1, 2, 2, 2]
-        sr_ratios=[8, 4, 2, 1]
 
+class Stem(layers.Layer):
+    def __init__(self, stem_chs):
+        super().__init__()
         self.stem = tf.keras.Sequential([
             ConvBNReLU(stem_chs[0], kernel_size=3, strides=2),
             ConvBNReLU(stem_chs[1], kernel_size=3, strides=1),
             ConvBNReLU(stem_chs[2], kernel_size=3, strides=1),
             ConvBNReLU(stem_chs[2], kernel_size=3, strides=2),
         ])
+    
+    def call(self, x):
+        return self.stem(x)
+    
+
+class NextViT(layers.Layer):
+    def __init__(self, stem_chs, depths, path_dropout, num_classes):
+        super().__init__()
+        
+        strides=[1, 2, 2, 2]
+        sr_ratios=[8, 4, 2, 1]
+
+        self.stem = Stem(stem_chs)
 
         self.stage_out_channels = [[96] * (depths[0]),
                                    [192] * (depths[1] - 1) + [256],
@@ -92,11 +100,12 @@ class NextViT(layers.Layer):
 
 def nextvit_small(input_shape=(None, None, 3), num_classes=1000):
     input_layer = layers.Input(input_shape)
-    output_layer = NextViT(stem_chs=CONFIG['SMALL']['stem_chs'], 
-                           depths=CONFIG['SMALL']['depths'], 
-                           path_dropout=CONFIG['SMALL']['drop_path'], 
+    output_layer = NextViT(stem_chs=CONFIG['BASE']['stem_chs'], 
+                           depths=CONFIG['BASE']['depths'], 
+                           path_dropout=CONFIG['BASE']['drop_path'], 
                            num_classes=num_classes)(input_layer)
     model = keras.Model(input_layer, output_layer)
     return model
 
 model = nextvit_small(input_shape=(224,224,3))
+print(model.summary())

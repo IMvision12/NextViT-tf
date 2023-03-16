@@ -2,8 +2,21 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 from Attention import E_MHSA
+from einops import rearrange
+from typing import List, Optional, Union
+import numpy as np
+import math
 
 EPSILON = 1e-5
+
+def shape_list(tensor: Union[tf.Tensor, np.ndarray]) -> List[int]:
+    if isinstance(tensor, np.ndarray):
+        return list(tensor.shape)
+    dynamic = tf.shape(tensor)
+    if tensor.shape == tf.TensorShape(None):
+        return dynamic
+    static = tensor.shape.as_list()
+    return [dynamic[i] if s is None else s for i, s in enumerate(static)]
 
 
 class StochasticDepth(layers.Layer):
@@ -35,6 +48,7 @@ class ConvBNReLU(layers.Layer):
             kernel_size=kernel_size,
             strides=strides,
             groups=groups,
+            padding="same",
         )
         self.norm = layers.BatchNormalization(epsilon=EPSILON)
         self.act = layers.Activation("relu")
@@ -180,11 +194,14 @@ class NTB(layers.Layer):
 
     def call(self, x):
         x = self.patch_embed(x)
+        B, C, H, W = x.shape
         out = x
-        out = self.mhsa_path_dropout(self.e_mhsa(out))
-        x = x + out
+        out = rearrange(out, "b h w c -> b (h w) c")
+        out = self.mhsa_path_dropout(out)
+        out = self.e_mhsa(out)
+        x = x + rearrange(out, "b (h w) c -> b h w c", h=H)
         out = self.projection(x)
         out = out + self.mhca_path_dropout(self.mhca(out))
-        x = tf.concat([x, out], axis=1)
+        x = tf.concat([x, out], axis=-1)
         x = x + self.mlp_path_dropout(self.mlp(out))
         return x
