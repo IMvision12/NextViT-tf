@@ -3,21 +3,8 @@ from tensorflow import keras
 from tensorflow.keras import layers
 from Attention import E_MHSA
 from einops import rearrange
-from typing import List, Optional, Union
-import numpy as np
-import math
 
 EPSILON = 1e-5
-
-
-def shape_list(tensor: Union[tf.Tensor, np.ndarray]) -> List[int]:
-    if isinstance(tensor, np.ndarray):
-        return list(tensor.shape)
-    dynamic = tf.shape(tensor)
-    if tensor.shape == tf.TensorShape(None):
-        return dynamic
-    static = tensor.shape.as_list()
-    return [dynamic[i] if s is None else s for i, s in enumerate(static)]
 
 
 class StochasticDepth(layers.Layer):
@@ -41,18 +28,19 @@ class StochasticDepth(layers.Layer):
         return x
 
 
-class ConvBNReLU(layers.Layer):
-    def __init__(self, filters, kernel_size, strides, groups=1):
-        super().__init__()
+class ConvBNReLU(tf.keras.Model):
+    def __init__(self, filters, kernel_size, strides, groups=1, **kwargs):
+        super(ConvBNReLU, self).__init__(**kwargs)
         self.conv = layers.Conv2D(
             filters,
             kernel_size=kernel_size,
             strides=strides,
             groups=groups,
-            padding="same",
+            padding="SAME",
+            use_bias=False,
         )
         self.norm = layers.BatchNormalization(epsilon=EPSILON)
-        self.act = layers.Activation("relu")
+        self.act = layers.ReLU()
 
     def call(self, x):
         x = self.conv(x)
@@ -61,21 +49,22 @@ class ConvBNReLU(layers.Layer):
         return x
 
 
-class MHCA(layers.Layer):
-    def __init__(self, filters, head_dim):
-        super().__init__()
+class MHCA(tf.keras.Model):
+    def __init__(self, filters, head_dim, **kwargs):
+        super(MHCA, self).__init__(**kwargs)
         self.group_conv3x3 = layers.Conv2D(
             filters=filters,
             kernel_size=3,
             strides=1,
             padding="same",
             groups=filters // head_dim,
+            use_bias=False,
         )
         self.norm = layers.BatchNormalization(epsilon=EPSILON)
-        self.act = layers.Activation("relu")
-        self.projection = layers.Conv2D(filters, kernel_size=1)
+        self.act = layers.ReLU()
+        self.projection = layers.Conv2D(filters, kernel_size=1, use_bias=False)
 
-    def forward(self, x):
+    def call(self, x):
         x = self.group_conv3x3(x)
         x = self.norm(x)
         x = self.act(x)
@@ -83,40 +72,36 @@ class MHCA(layers.Layer):
         return x
 
 
-# https://github.com/bytedance/Next-ViT/blob/main/classification/nextvit.py
-def _make_divisible(v, divisor, min_value=None):
-    if min_value is None:
-        min_value = divisor
-    new_v = max(min_value, int(v + divisor / 2) // divisor * divisor)
-    # Make sure that round down does not go down by more than 10%.
-    if new_v < 0.9 * v:
-        new_v += divisor
-    return new_v
-
-
-class PatchEmbed(tf.keras.layers.Layer):
-    def __init__(self, filters, strides=1):
-        super(PatchEmbed, self).__init__()
-        norm_layer = tf.keras.layers.BatchNormalization(epsilon=EPSILON)
-        self.filters = filters
-        self.avgpool = lambda x: x
-        self.conv = tf.keras.layers.Conv2D(
-            filters, kernel_size=1, strides=strides, use_bias=False
-        )
-        self.norm = norm_layer
+class PatchEmbed(tf.keras.Model):
+    def __init__(self, filters, strides=1, **kwargs):
+        super(PatchEmbed, self).__init__(**kwargs)
+        if strides == 2:
+            self.avgpool = tf.keras.layers.AveragePooling2D(
+                pool_size=(2, 2), strides=2
+            )
+            self.conv = tf.keras.layers.Conv2D(
+                filters, kernel_size=1, strides=1, use_bias=False
+            )
+            self.norm = tf.keras.layers.BatchNormalization(epsilon=EPSILON)
+        else:
+            self.conv = tf.keras.layers.Conv2D(
+                filters, kernel_size=1, strides=1, use_bias=False
+            )
+            self.norm = tf.keras.layers.BatchNormalization(epsilon=EPSILON)
+            self.avgpool = lambda x: x
 
     def call(self, x):
         return self.norm(self.conv(self.avgpool(x)))
 
 
-class mlp(layers.Layer):
-    def __init__(self, filters, mlp_ratio=None, drop=0.0):
-        super().__init__()
-        hidden_dim = _make_divisible(filters * mlp_ratio, 32)
-        self.conv1 = layers.Conv2D(hidden_dim, kernel_size=1)
+class mlp(tf.keras.Model):
+    def __init__(self, filters, mlp_ratio=1, drop=0.0, **kwargs):
+        super(mlp, self).__init__(**kwargs)
+        hidden_dim = filters * mlp_ratio
+        self.conv1 = layers.Conv2D(hidden_dim, kernel_size=1, padding="VALID")
         self.act = layers.Activation("relu")
         self.drop1 = layers.Dropout(drop)
-        self.conv2 = layers.Conv2D(filters, kernel_size=1)
+        self.conv2 = layers.Conv2D(filters, kernel_size=1, padding="VALID")
         self.drop2 = layers.Dropout(drop)
 
     def call(self, x):
@@ -128,7 +113,7 @@ class mlp(layers.Layer):
         return x
 
 
-class NCB(layers.Layer):
+class NCB(tf.keras.Model):
     def __init__(
         self,
         filters,
@@ -137,8 +122,9 @@ class NCB(layers.Layer):
         drop=0,
         head_dim=32,
         mlp_ratio=3,
+        **kwargs
     ):
-        super().__init__()
+        super(NCB, self).__init__(**kwargs)
         self.filters = filters
         self.patch_embed = PatchEmbed(filters, strides)
         self.mhca = MHCA(filters, head_dim)
@@ -153,7 +139,7 @@ class NCB(layers.Layer):
         return x
 
 
-class NTB(layers.Layer):
+class NTB(tf.keras.Model):
     def __init__(
         self,
         filters,
@@ -165,14 +151,14 @@ class NTB(layers.Layer):
         mix_block_ratio=0.75,
         attn_drop=0,
         drop=0,
+        **kwargs
     ):
-        super().__init__()
-        self.mix_block_ratio = mix_block_ratio
+        super(NTB, self).__init__(**kwargs)
         self.filters = filters
+        self.mix_block_ratio = mix_block_ratio
 
-        self.mhsa_out_channels = _make_divisible(
-            int(filters * mix_block_ratio), 32
-        )
+        self.mhsa_out_channels = int(filters * mix_block_ratio)
+
         self.mhca_out_channels = filters - self.mhsa_out_channels
 
         self.patch_embed = PatchEmbed(self.mhsa_out_channels, strides)
@@ -199,8 +185,7 @@ class NTB(layers.Layer):
         B, C, H, W = x.shape
         out = x
         out = rearrange(out, "b h w c -> b (h w) c")
-        out = self.mhsa_path_dropout(out)
-        out = self.e_mhsa(out)
+        out = self.mhsa_path_dropout(self.e_mhsa(out))
         x = x + rearrange(out, "b (h w) c -> b h w c", h=H)
         out = self.projection(x)
         out = out + self.mhca_path_dropout(self.mhca(out))

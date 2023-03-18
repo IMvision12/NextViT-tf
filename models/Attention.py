@@ -1,7 +1,6 @@
 import tensorflow as tf
-from typing import List, Optional, Union
+from typing import List, Union
 import numpy as np
-import math
 
 EPSILON = 1e-5
 
