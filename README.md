@@ -23,13 +23,14 @@ Clone Github Repo:
 ```
 Then cd inside NextVit-tf:
 ```
-cd nextvit-tf
+cd nextvit_tf
 ```
 Then import models and use it!
 ```
 import tensorflow as tf
 from models.nextvit_tf import nextvit_base
 model = nextvit_base(input_shape=(224, 224, 3), num_classes=100)
+print(model.summary(expand_nested=True))
 ```
 
 # References
