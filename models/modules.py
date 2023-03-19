@@ -28,6 +28,7 @@ class StochasticDepth(layers.Layer):
         return x
 
 
+#https://github.com/bytedance/Next-ViT/blob/main/classification/nextvit.py
 def _make_divisible(v, divisor, min_value=None):
     if min_value is None:
         min_value = divisor

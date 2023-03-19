@@ -5,7 +5,7 @@ import numpy as np
 
 EPSILON = 1e-5
 
-
+#https://github.com/huggingface/transformers/blob/60d51ef5123d949fd8c59cd4d3254e711541d278/src/transformers/tf_utils.py#L26
 def shape_list(tensor: Union[tf.Tensor, np.ndarray]) -> List[int]:
     if isinstance(tensor, np.ndarray):
         return list(tensor.shape)

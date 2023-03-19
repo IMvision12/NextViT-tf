@@ -132,5 +132,6 @@ def nextvit_large(input_shape=(None, None, 3), num_classes=1000):
     return model
 
 
+#Test Model
 model = nextvit_small(input_shape=(224, 224, 3))
 print(model.summary(expand_nested=True))
