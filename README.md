@@ -1,5 +1,3 @@
-# [WIP]
-
 # NextViT-tf
 
 This repository is about an implementation of the research paper "Next-ViT: Next Generation Vision Transformer for Efficient Deployment in
@@ -16,3 +14,26 @@ In this paper authors propose a next generation vision Transformer for efficient
 <p align="center">
   <img src="https://github.com/IMvision12/NextViT-tf/blob/main/img/img2.png" title="arch">
 </p>
+
+# Usage:
+
+Clone Github Repo: 
+```
+!git clone https://github.com/IMvision12/NextViT-tf.git
+```
+Then cd inside NextVit-tf:
+```
+cd nextvit-tf
+```
+Then import models and use it!
+```
+import tensorflow as tf
+from models.nextvit_tf import nextvit_base
+model = nextvit_base(input_shape=(224, 224, 3), num_classes=100)
+```
+
+# References
+
+[1] NextViT paper: https://arxiv.org/pdf/2207.05501v4
+
+[2] Official NextViT Repo: https://github.com/bytedance/next-vit
