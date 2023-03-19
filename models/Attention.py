@@ -5,7 +5,8 @@ import numpy as np
 
 EPSILON = 1e-5
 
-#https://github.com/huggingface/transformers/blob/60d51ef5123d949fd8c59cd4d3254e711541d278/src/transformers/tf_utils.py#L26
+
+# https://github.com/huggingface/transformers/blob/60d51ef5123d949fd8c59cd4d3254e711541d278/src/transformers/tf_utils.py#L26
 def shape_list(tensor: Union[tf.Tensor, np.ndarray]) -> List[int]:
     if isinstance(tensor, np.ndarray):
         return list(tensor.shape)
@@ -89,18 +90,3 @@ class E_MHSA(layers.Layer):
         x = self.proj(x)
         x = self.proj_drop(x)
         return x
-
-
-# Testing
-e_mhsa = E_MHSA(
-    dim=64,
-    out_dim=128,
-    head_dim=32,
-    qkv_bias=True,
-    qk_scale=None,
-    attn_drop=0.1,
-    proj_drop=0.1,
-    sr_ratio=1,
-)
-sample_ip_tf = tf.random.normal(shape=(4, 16, 64))
-print(e_mhsa(sample_ip_tf).shape)

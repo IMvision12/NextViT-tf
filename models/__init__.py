@@ -1,1 +1,1 @@
-from modules import NCB, NTB, ConvBNReLU
+from .nextvit_tf import nextvit_small, nextvit_base, nextvit_large

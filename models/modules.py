@@ -1,7 +1,7 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
-from Attention import E_MHSA
+from .Attention import E_MHSA
 from einops import rearrange
 
 EPSILON = 1e-5
@@ -28,7 +28,7 @@ class StochasticDepth(layers.Layer):
         return x
 
 
-#https://github.com/bytedance/Next-ViT/blob/main/classification/nextvit.py
+# https://github.com/bytedance/Next-ViT/blob/main/classification/nextvit.py
 def _make_divisible(v, divisor, min_value=None):
     if min_value is None:
         min_value = divisor
