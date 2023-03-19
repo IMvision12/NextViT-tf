@@ -27,6 +27,7 @@ class StochasticDepth(layers.Layer):
             return (x / keep_prob) * random_tensor
         return x
 
+
 def _make_divisible(v, divisor, min_value=None):
     if min_value is None:
         min_value = divisor
@@ -34,6 +35,7 @@ def _make_divisible(v, divisor, min_value=None):
     if new_v < 0.9 * v:
         new_v += divisor
     return new_v
+
 
 class ConvBNReLU(tf.keras.Model):
     def __init__(self, filters, kernel_size, strides, groups=1, **kwargs):
@@ -47,7 +49,7 @@ class ConvBNReLU(tf.keras.Model):
             use_bias=False,
         )
         self.norm = layers.BatchNormalization(epsilon=EPSILON)
-        self.act = layers.ReLU()
+        self.act = tf.keras.layers.ReLU()
 
     def call(self, x):
         x = self.conv(x)
@@ -80,6 +82,25 @@ class MHCA(tf.keras.Model):
         return x
 
 
+class mlp(tf.keras.Model):
+    def __init__(self, filters, mlp_ratio=1, drop=0.0, **kwargs):
+        super(mlp, self).__init__(**kwargs)
+        hidden_dim = _make_divisible(filters * mlp_ratio, 32)
+        self.conv1 = layers.Conv2D(hidden_dim, kernel_size=1, padding="VALID")
+        self.act = layers.Activation("relu")
+        self.drop1 = layers.Dropout(drop)
+        self.conv2 = layers.Conv2D(filters, kernel_size=1, padding="VALID")
+        self.drop2 = layers.Dropout(drop)
+
+    def call(self, x):
+        x = self.conv1(x)
+        x = self.act(x)
+        x = self.drop1(x)
+        x = self.conv2(x)
+        x = self.drop2(x)
+        return x
+
+
 class PatchEmbed(tf.keras.Model):
     def __init__(self, filters, strides):
         super(PatchEmbed, self).__init__()
@@ -88,13 +109,15 @@ class PatchEmbed(tf.keras.Model):
 
         if self.strides == 2:
             self.avg_pool = tf.keras.layers.AvgPool2D(
-                pool_size=(2, 2), strides=2, padding='same')
+                pool_size=(2, 2), strides=2, padding="same"
+            )
         else:
             self.avg_pool = None
 
         if self.filters is not None:
             self.conv = tf.keras.layers.Conv2D(
-                filters=self.filters, kernel_size=1, strides=1, use_bias=False)
+                filters=self.filters, kernel_size=1, strides=1, use_bias=False
+            )
             self.bn = tf.keras.layers.BatchNormalization(epsilon=EPSILON)
 
     def call(self, inputs):
@@ -112,24 +135,6 @@ class PatchEmbed(tf.keras.Model):
                 x = tf.keras.layers.Lambda(lambda x: x)(x)
         return x
 
-
-class mlp(tf.keras.Model):
-    def __init__(self, filters, mlp_ratio=1, drop=0.0, **kwargs):
-        super(mlp, self).__init__(**kwargs)
-        hidden_dim = _make_divisible(filters * mlp_ratio, 32)
-        self.conv1 = layers.Conv2D(hidden_dim, kernel_size=1, padding='VALID')
-        self.act = layers.Activation("relu")
-        self.drop1 = layers.Dropout(drop)
-        self.conv2 = layers.Conv2D(filters, kernel_size=1, padding="VALID")
-        self.drop2 = layers.Dropout(drop)
-
-    def call(self, x):
-        x = self.conv1(x)
-        x = self.act(x)
-        x = self.drop1(x)
-        x = self.conv2(x)
-        x = self.drop2(x)
-        return x
 
 class NCB(tf.keras.Model):
     def __init__(
@@ -179,8 +184,10 @@ class NTB(tf.keras.Model):
         self.strides = strides
         self.mix_block_ratio = mix_block_ratio
 
-        self.mhsa_out_channels = _make_divisible(int(filters * mix_block_ratio), 32)
-        
+        self.mhsa_out_channels = _make_divisible(
+            int(filters * mix_block_ratio), 32
+        )
+
         self.mhca_out_channels = filters - self.mhsa_out_channels
         self.patch_embed = PatchEmbed(self.mhsa_out_channels, strides)
         self.norm1 = layers.BatchNormalization(epsilon=EPSILON)

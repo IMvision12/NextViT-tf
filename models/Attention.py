@@ -1,4 +1,5 @@
 import tensorflow as tf
+from tensorflow.keras import layers
 from typing import List, Union
 import numpy as np
 
@@ -15,7 +16,7 @@ def shape_list(tensor: Union[tf.Tensor, np.ndarray]) -> List[int]:
     return [dynamic[i] if s is None else s for i, s in enumerate(static)]
 
 
-class E_MHSA(tf.keras.layers.Layer):
+class E_MHSA(layers.Layer):
     """
     Efficient Multi-Head Self Attention
     """
@@ -30,8 +31,9 @@ class E_MHSA(tf.keras.layers.Layer):
         attn_drop=0,
         proj_drop=0.0,
         sr_ratio=1,
+        **kwargs,
     ):
-        super().__init__()
+        super().__init__(**kwargs)
         self.dim = dim
         self.out_dim = out_dim if out_dim is not None else dim
         self.num_heads = self.dim // head_dim
@@ -50,7 +52,6 @@ class E_MHSA(tf.keras.layers.Layer):
                 pool_size=self.N_ratio, strides=self.N_ratio
             )
             self.norm = tf.keras.layers.BatchNormalization(epsilon=1e-5)
-        self.is_bn_merged = False
 
     def call(self, x):
         B = shape_list(x)[0]
@@ -63,8 +64,6 @@ class E_MHSA(tf.keras.layers.Layer):
         if self.sr_ratio > 1:
             x_ = tf.transpose(x, perm=[0, 2, 1])
             x_ = self.sr(x_)
-            if not self.is_bn_merged:
-                x_ = self.norm(x_)
             x_ = tf.transpose(x_, perm=[0, 2, 1])
             k = self.k(x_)
             k = tf.reshape(k, (B, -1, self.num_heads, C // self.num_heads))

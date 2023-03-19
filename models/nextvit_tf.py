@@ -23,35 +23,37 @@ CONFIG = {
 }
 
 
-def NextViT(input_shape, stem_chs, depths, path_dropout, num_classes) -> keras.Model:
-
+def NextViT(
+    input_shape, stem_chs, depths, path_dropout, num_classes
+) -> keras.Model:
     strides = [1, 2, 2, 2]
     sr_ratios = [8, 4, 2, 1]
     input_layer = layers.Input(input_shape)
 
     stem = tf.keras.Sequential(
-            [
-                ConvBNReLU(stem_chs[0], kernel_size=3, strides=2),
-                ConvBNReLU(stem_chs[1], kernel_size=3, strides=1),
-                ConvBNReLU(stem_chs[2], kernel_size=3, strides=1),
-                ConvBNReLU(stem_chs[2], kernel_size=3, strides=2),
-            ]
-        )
+        [
+            ConvBNReLU(stem_chs[0], kernel_size=3, strides=2),
+            ConvBNReLU(stem_chs[1], kernel_size=3, strides=1),
+            ConvBNReLU(stem_chs[2], kernel_size=3, strides=1),
+            ConvBNReLU(stem_chs[2], kernel_size=3, strides=2),
+        ]
+    )
     x = stem(input_layer)
     stage_out_channels = [
-            [96] * (depths[0]),
-            [192] * (depths[1] - 1) + [256],
-            [384, 384, 384, 384, 512] * (depths[2] // 5),
-            [768] * (depths[3] - 1) + [1024],
-        ]
+        [96] * (depths[0]),
+        [192] * (depths[1] - 1) + [256],
+        [384, 384, 384, 384, 512] * (depths[2] // 5),
+        [768] * (depths[3] - 1) + [1024],
+    ]
 
     stage_block_types = [
-            [NCB] * depths[0],
-            [NCB] * (depths[1] - 1) + [NTB],
-            [NCB, NCB, NCB, NCB, NTB] * (depths[2] // 5),
-            [NCB] * (depths[3] - 1) + [NTB],
-        ]
+        [NCB] * depths[0],
+        [NCB] * (depths[1] - 1) + [NTB],
+        [NCB, NCB, NCB, NCB, NTB] * (depths[2] // 5),
+        [NCB] * (depths[3] - 1) + [NTB],
+    ]
 
+    input_channel = stem_chs[-1]
     features = []
     idx = 0
     dpr = [x for x in tf.linspace(0.0, path_dropout, sum(depths))]
@@ -68,23 +70,23 @@ def NextViT(input_shape, stem_chs, depths, path_dropout, num_classes) -> keras.M
             block_type = block_types[block_id]
             if block_type is NCB:
                 layer = NCB(
-                        output_channel,
-                        strides=stride,
-                        path_dropout=dpr[idx + block_id],
-                        drop=0,
-                        head_dim=32,
+                    output_channel,
+                    strides=stride,
+                    path_dropout=dpr[idx + block_id],
+                    drop=0,
+                    head_dim=32,
                 )
                 features.append(layer)
             elif block_type is NTB:
                 layer = NTB(
-                        output_channel,
-                        path_dropout=dpr[idx + block_id],
-                        strides=stride,
-                        sr_ratio=sr_ratios[stage_id],
-                        head_dim=32,
-                        mix_block_ratio=0.75,
-                        attn_drop=0,
-                        drop=0,
+                    output_channel,
+                    path_dropout=dpr[idx + block_id],
+                    strides=stride,
+                    sr_ratio=sr_ratios[stage_id],
+                    head_dim=32,
+                    mix_block_ratio=0.75,
+                    attn_drop=0,
+                    drop=0,
                 )
                 features.append(layer)
         idx += numrepeat
