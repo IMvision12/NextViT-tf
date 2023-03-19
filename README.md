@@ -20,12 +20,9 @@ In this paper authors propose a next generation vision Transformer for efficient
 Clone Github Repo: 
 ```
 !git clone https://github.com/IMvision12/NextViT-tf.git
-```
-Then cd inside NextVit-tf:
-```
 cd nextvit_tf
 ```
-Then import models and use it!
+Then import model
 ```
 import tensorflow as tf
 from models.nextvit_tf import nextvit_base
