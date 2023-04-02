@@ -18,12 +18,14 @@ In this paper authors propose a next generation vision Transformer for efficient
 # Usage:
 
 Clone Github Repo: 
-```
-!git clone https://github.com/IMvision12/NextViT-tf.git
-cd nextvit_tf
+
+```bash
+$ git clone https://github.com/IMvision12/NextViT-tf
+$ cd nextvit_tf
 ```
 Then import model
-```
+
+```py
 import tensorflow as tf
 from models.nextvit_tf import nextvit_base
 model = nextvit_base(input_shape=(224, 224, 3), num_classes=100)
